@@ -1,0 +1,10 @@
+{
+  "name": "veo-gate",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "echo 'Static/Vercel-style app scaffolded. Deploy through Vercel or serve with any static server.'",
+    "build": "echo 'No build step required'"
+  }
+}
