@@ -149,18 +149,25 @@
 
     async function generateImage(code, prompt){
       setStatus('Submitting image generation request...');
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 130000);
       const res = await fetch('/api/image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, prompt })
+        body: JSON.stringify({ code, prompt }),
+        signal: controller.signal
       });
+      clearTimeout(timeout);
       const data = await res.json();
       if(!res.ok){
         throw new Error(data.error || 'Image generation failed');
       }
+      if(!data.imageUrl){
+        throw new Error('Image route returned no imageUrl');
+      }
       imageEl.src = data.imageUrl;
       imageEl.style.display = 'block';
-      setStatus('Image generation complete.');
+      setStatus(`Image generation complete.${data.mimeType ? ` Returned ${data.mimeType}.` : ''}`);
     }
 
     async function generateVideo(code, prompt){
@@ -197,7 +204,7 @@
           await generateVideo(code, prompt);
         }
       } catch (err) {
-        setStatus(err.message || 'Something went wrong.', true);
+        setStatus(err.name === 'AbortError' ? 'The browser-side image request timed out after 130 seconds.' : (err.message || 'Something went wrong.'), true);
       } finally {
         generateBtn.disabled = false;
       }

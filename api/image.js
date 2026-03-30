@@ -20,38 +20,63 @@ export default async function handler(req, res) {
 
     const apiKey = process.env.GEMINI_API_KEY;
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=${encodeURIComponent(apiKey)}`;
+    const payload = {
+      contents: [
+        {
+          parts: [
+            { text: `Generate a single high-quality image. ${String(prompt).trim()}` }
+          ]
+        }
+      ],
+      generationConfig: {
+        responseModalities: ['TEXT', 'IMAGE']
+      }
+    };
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 120000);
+
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              { text: `Generate a single high-quality image. ${String(prompt).trim()}` }
-            ]
-          }
-        ],
-        generationConfig: {
-          responseModalities: ['TEXT', 'IMAGE']
-        }
-      })
+      body: JSON.stringify(payload),
+      signal: controller.signal
     });
+    clearTimeout(timeout);
 
-    const data = await response.json();
+    const text = await response.text();
+    let data;
+    try {
+      data = text ? JSON.parse(text) : {};
+    } catch {
+      return res.status(500).json({ error: 'Image route returned non-JSON response', raw: text.slice(0, 1500) });
+    }
+
     if (!response.ok) {
       return res.status(response.status).json({ error: data?.error?.message || 'Image generation failed', raw: data });
     }
 
     const parts = data?.candidates?.[0]?.content?.parts || [];
-    const inline = parts.find(part => part.inlineData?.data);
-    if (!inline?.inlineData?.data) {
-      return res.status(500).json({ error: 'No image data returned', raw: data });
+    let inlineData = null;
+    for (const part of parts) {
+      if (part?.inlineData?.data) {
+        inlineData = part.inlineData;
+        break;
+      }
+      if (part?.inline_data?.data) {
+        inlineData = part.inline_data;
+        break;
+      }
     }
 
-    const mimeType = inline.inlineData.mimeType || 'image/png';
-    const dataUrl = `data:${mimeType};base64,${inline.inlineData.data}`;
-    return res.status(200).json({ imageUrl: dataUrl });
+    if (!inlineData?.data) {
+      return res.status(500).json({ error: 'No image data returned from model', raw: data });
+    }
+
+    const mimeType = inlineData.mimeType || inlineData.mime_type || 'image/png';
+    const dataUrl = `data:${mimeType};base64,${inlineData.data}`;
+    return res.status(200).json({ imageUrl: dataUrl, mimeType });
   } catch (error) {
-    return res.status(500).json({ error: error.message || 'Unexpected server error' });
+    return res.status(500).json({ error: error.name === 'AbortError' ? 'Image generation timed out after 120 seconds' : (error.message || 'Unexpected server error') });
   }
 }
