@@ -6,5 +6,6 @@
     "api/status.js": {
       "maxDuration": 300
     }
-  }
+  },
+  "outputDirectory": "public"
 }
