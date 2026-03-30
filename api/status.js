@@ -31,12 +31,13 @@ export default async function handler(req, res) {
       return res.status(200).json({ done: false });
     }
 
-    const videoUrl = data?.response?.generateVideoResponse?.generatedSamples?.[0]?.video?.uri;
-    if (!videoUrl) {
+    const fileUrl = data?.response?.generateVideoResponse?.generatedSamples?.[0]?.video?.uri;
+    if (!fileUrl) {
       return res.status(500).json({ error: 'Generation finished but no video URL was found', raw: data });
     }
 
-    return res.status(200).json({ done: true, videoUrl });
+    const proxyUrl = `/api/video?code=${encodeURIComponent(code)}&file=${encodeURIComponent(fileUrl)}`;
+    return res.status(200).json({ done: true, videoUrl: proxyUrl });
   } catch (error) {
     return res.status(500).json({ error: error.message || 'Unexpected server error' });
   }
