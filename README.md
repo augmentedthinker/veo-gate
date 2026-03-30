@@ -1,22 +1,23 @@
 # veo-gate
 
-A gated Gemini Veo video-generation proof of concept.
+A gated Gemini media-generation proof of concept.
 
 ## What it does
 
 - asks for a 4-digit access code
-- accepts a short video prompt
-- sends the request to a backend route
-- backend calls Gemini / Veo using a server-side API key
-- polls until the video generation is done
-- returns and displays the generated video
+- supports both image and video generation
+- sends requests to backend routes
+- backend calls Gemini using a server-side API key stored in Vercel env vars
+- returns generated media to the browser
 
 ## Deployment model
 
 This repo is designed for Vercel:
-- `index.html` = frontend
-- `api/generate.js` = start Veo job
+- `public/index.html` = frontend
+- `api/image.js` = image generation
+- `api/generate.js` = start Veo video generation
 - `api/status.js` = poll Veo job status
+- `api/video.js` = proxy Gemini video download through backend
 
 ## Required Vercel environment variables
 
@@ -25,4 +26,4 @@ This repo is designed for Vercel:
 
 ## Current status
 
-Initial proof-of-concept scaffold created on 2026-03-30.
+Initial gated media proof of concept created on 2026-03-30 and extended to support both image and video generation.
